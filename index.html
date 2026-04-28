@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TechMesh'26 — Vision AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080c14;--surface:#0e1420;--surface2:#151c2e;--border:#1e2a42;
+  --accent:#00e5ff;--accent2:#7c3aed;--accent3:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--success:#10b981;--danger:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 15%,rgba(124,58,237,.1) 0,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(0,229,255,.07) 0,transparent 55%);pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:relative;z-index:10;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(8,12,20,.85);backdrop-filter:blur(14px);}
+.logo{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:3px;}
+.logo span{color:var(--accent2);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden;}
+.mode-btn{padding:6px 16px;font-size:.75rem;font-family:'Space Mono',monospace;letter-spacing:1px;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:.2s;}
+.mode-btn.active{background:var(--accent2);color:#fff;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.4);}50%{opacity:.8;box-shadow:0 0 0 6px rgba(16,185,129,0);}}
+
+/* LAYOUT */
+.wrap{position:relative;z-index:5;max-width:1400px;margin:0 auto;padding:24px;}
+.grid{display:grid;grid-template-columns:1fr 1.5fr;gap:20px;}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+
+/* PANELS */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.panel-title{font-weight:700;font-size:.9rem;letter-spacing:1px;text-transform:uppercase;}
+.panel-icon{font-size:1rem;}
+.panel-body{padding:20px;}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:.3s;position:relative;overflow:hidden;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,229,255,.04);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:2.5rem;margin-bottom:10px;}
+.upload-text{font-size:.9rem;color:var(--muted);}
+.upload-text strong{color:var(--accent);}
+#preview-img{width:100%;border-radius:10px;margin-top:14px;display:none;max-height:260px;object-fit:contain;}
+
+/* CONTROLS */
+.control-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.select-styled{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.85rem;cursor:pointer;}
+.select-styled:focus{outline:none;border-color:var(--accent);}
+.btn{padding:9px 20px;border-radius:8px;border:none;font-family:'Outfit',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;transition:.2s;letter-spacing:.5px;}
+.btn-primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.tab{padding:10px 18px;font-size:.8rem;font-weight:600;letter-spacing:.5px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:.2s;text-transform:uppercase;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* RESULTS */
+.result-section{display:none;}
+.result-section.visible{display:block;}
+.caption-box{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px;font-size:.95rem;line-height:1.6;}
+.summary-box{font-size:.9rem;line-height:1.7;color:#94a3b8;margin-bottom:16px;}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.meta-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.meta-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.meta-value{font-size:.9rem;font-weight:600;}
+.meta-value.accent{color:var(--accent);}
+.meta-value.accent2{color:var(--accent2);}
+.meta-value.accent3{color:var(--accent3);}
+.meta-value.success{color:var(--success);}
+
+/* PROGRESS BAR */
+.progress-wrap{margin-bottom:6px;}
+.progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:4px;}
+.progress-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .8s ease;}
+
+/* OBJECTS */
+.tag-cloud{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+.tag{padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:600;}
+.tag-obj{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--accent);}
+.tag-kw{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--accent3);}
+
+/* STORY */
+.story-box{background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(0,229,255,.05));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:18px;font-size:.92rem;line-height:1.8;font-style:italic;color:#c4b5fd;}
+
+/* AUDIO */
+.audio-bar{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:14px;}
+.audio-icon{font-size:1.4rem;cursor:pointer;}
+#tts-status{font-size:.8rem;color:var(--muted);}
+
+/* FOLLOW-UP */
+.followup-row{display:flex;gap:8px;margin-top:14px;}
+.followup-row input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.85rem;}
+.followup-row input:focus{outline:none;border-color:var(--accent);}
+.followup-answer{background:var(--surface2);border-left:3px solid var(--accent2);border-radius:0 10px 10px 0;padding:14px;margin-top:12px;font-size:.9rem;line-height:1.7;display:none;}
+
+/* COMPARE */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.compare-zone{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;position:relative;transition:.2s;}
+.compare-zone:hover{border-color:var(--accent);}
+.compare-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.compare-zone img{width:100%;border-radius:8px;display:none;max-height:140px;object-fit:contain;}
+.compare-result{margin-top:16px;}
+.diff-row{display:flex;justify-content:space-between;padding:8px 14px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:.85rem;}
+.diff-label{color:var(--muted);}
+
+/* DASHBOARD */
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:0;}
+.dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:.2s;cursor:pointer;}
+.dash-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.dash-thumb{width:100%;height:110px;object-fit:cover;}
+.dash-info{padding:10px;}
+.dash-caption{font-size:.78rem;line-height:1.4;color:var(--text);margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.dash-meta{display:flex;justify-content:space-between;align-items:center;}
+.dash-scene{font-size:.7rem;color:var(--muted);background:var(--surface);padding:2px 8px;border-radius:10px;}
+.dash-mood{font-size:.7rem;font-weight:700;}
+.empty-dash{text-align:center;padding:40px;color:var(--muted);font-size:.9rem;}
+
+/* LOADER */
+.loader{display:none;text-align:center;padding:30px;}
+.loader.show{display:block;}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-text{color:var(--muted);font-size:.85rem;font-family:'Space Mono',monospace;}
+
+/* DOWNLOAD */
+.download-bar{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:12px 20px;font-size:.85rem;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">VISION<span>AI</span> &nbsp;<span style="color:var(--muted);font-size:.7rem;">TechMesh'26</span></div>
+  <div class="header-right">
+    <div class="live-dot" title="Live Mode"></div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('live',this)">LIVE</button>
+      <button class="mode-btn" onclick="setMode('demo',this)">DEMO</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- TOP TABS -->
+  <div class="tabs" style="margin-bottom:20px;">
+    <div class="tab active" onclick="switchMainTab('analyze',this)">🔍 Analyze</div>
+    <div class="tab" onclick="switchMainTab('compare',this)">⚖️ Compare</div>
+    <div class="tab" onclick="switchMainTab('dashboard',this)">📊 Dashboard</div>
+  </div>
+
+  <!-- ═══════════════ ANALYZE TAB ═══════════════ -->
+  <div id="tab-analyze">
+    <div class="grid">
+
+      <!-- LEFT: UPLOAD -->
+      <div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-icon">📤</span>
+            <span class="panel-title">Upload / Capture</span>
+          </div>
+          <div class="panel-body">
+            <div class="upload-zone" id="drop-zone">
+              <input type="file" id="img-input" accept="image/*" onchange="handleImage(this)"/>
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text">Drop image here or <strong>click to browse</strong><br/><span style="font-size:.75rem">JPG, PNG, WEBP, GIF supported</span></div>
+            </div>
+            <img id="preview-img" src="" alt="Preview"/>
+
+            <div class="control-row">
+              <label style="font-size:.8rem;color:var(--muted);align-self:center;">Story Tone:</label>
+              <select class="select-styled" id="tone-select">
+                <option value="emotional">😢 Emotional</option>
+                <option value="funny">😂 Funny</option>
+                <option value="dramatic">🎭 Dramatic</option>
+                <option value="formal">📰 Formal</option>
+                <option value="kids">🧒 Kids-Style</option>
+                <option value="detective">🕵️ Detective</option>
+              </select>
+              <button class="btn btn-primary" id="analyze-btn" onclick="analyzeImage()" disabled>Analyze ✨</button>
+            </div>
+
+            <div style="margin-top:14px;">
+              <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">📷 Or use webcam:</div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="startCam()">Open Camera</button>
+                <button class="btn btn-secondary" id="snap-btn" onclick="snapPhoto()" style="display:none;">📸 Snap</button>
+                <button class="btn btn-secondary" id="stop-cam-btn" onclick="stopCam()" style="display:none;">✕ Stop</button>
+              </div>
+              <video id="cam-video" style="width:100%;border-radius:10px;margin-top:10px;display:none;" autoplay playsinline></video>
+              <canvas id="cam-canvas" style="display:none;"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: RESULTS -->
+      <div>
+        <div class="panel" style="min-height:400px;">
+          <div class="panel-header">
+            <span class="panel-icon">🧠</span>
+            <span class="panel-title">AI Analysis Results</span>
+          </div>
+          <div class="panel-body">
+
+            <div class="loader" id="main-loader">
+              <div class="spinner"></div>
+              <div class="loader-text">Analyzing image with Claude Vision...</div>
+            </div>
+
+            <div id="results-area" style="display:none;">
+
+              <!-- inner tabs -->
+              <div class="tabs">
+                <div class="tab active" onclick="switchInnerTab('overview',this)">Overview</div>
+                <div class="tab" onclick="switchInnerTab('objects',this)">Objects</div>
+                <div class="tab" onclick="switchInnerTab('story',this)">Story</div>
+                <div class="tab" onclick="switchInnerTab('followup',this)">Follow-Up</div>
+              </div>
+
+              <!-- OVERVIEW -->
+              <div id="inner-overview" class="result-section visible">
+                <div class="caption-box" id="r-caption"></div>
+                <div class="summary-box" id="r-summary"></div>
+                <div class="meta-grid">
+                  <div class="meta-card">
+                    <div class="meta-label">Emotion / Atmosphere</div>
+                    <div class="meta-value accent" id="r-emotion"></div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-label">Scene Type</div>
+                    <div class="meta-value accent2" id="r-scene"></div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-label">Image Quality</div>
+                    <div class="meta-value accent3" id="r-quality"></div>
+                  </div>
+                  <div class="meta-card">
+                    <div class="meta-label">Mood Score</div>
+                    <div class="meta-value success" id="r-mood"></div>
+                  </div>
+                </div>
+                <div class="progress-wrap">
+                  <div class="progress-label"><span>Confidence</span><span id="r-conf-val">0%</span></div>
+                  <div class="progress-bar"><div class="progress-fill" id="r-conf-bar" style="width:0%"></div></div>
+                </div>
+                <div class="download-bar" style="margin-top:14px;">
+                  <button class="btn btn-secondary" onclick="downloadReport()">📄 Download Report</button>
+                  <button class="btn btn-secondary" onclick="copyJSON()">📋 Copy JSON</button>
+                </div>
+              </div>
+
+              <!-- OBJECTS -->
+              <div id="inner-objects" class="result-section">
+                <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">Detected Objects</div>
+                <div class="tag-cloud" id="r-objects"></div>
+                <div style="font-size:.8rem;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:1px;">Key Highlights</div>
+                <div class="tag-cloud" id="r-keywords"></div>
+              </div>
+
+              <!-- STORY -->
+              <div id="inner-story" class="result-section">
+                <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">AI-Generated Story</div>
+                <div class="story-box" id="r-story"></div>
+                <div class="audio-bar" id="audio-bar">
+                  <span class="audio-icon" id="tts-btn" onclick="speakStory()" title="Read aloud">🔊</span>
+                  <div>
+                    <div style="font-size:.85rem;font-weight:600;">Audio Narration</div>
+                    <div id="tts-status">Click speaker to hear the story</div>
+                  </div>
+                  <button class="btn btn-secondary" style="margin-left:auto;" onclick="stopSpeech()">⏹ Stop</button>
+                </div>
+              </div>
+
+              <!-- FOLLOW-UP -->
+              <div id="inner-followup" class="result-section">
+                <div style="font-size:.85rem;color:var(--muted);margin-bottom:10px;">Ask anything about the image:</div>
+                <div class="followup-row">
+                  <input type="text" id="fq-input" placeholder="e.g. How many people are in the image?" onkeydown="if(event.key==='Enter')askFollowup()"/>
+                  <button class="btn btn-primary" onclick="askFollowup()">Ask</button>
+                </div>
+                <div class="loader" id="fq-loader" style="padding:16px;">
+                  <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
+                </div>
+                <div class="followup-answer" id="fq-answer"></div>
+              </div>
+
+            </div><!-- /results-area -->
+
+            <div id="results-placeholder" style="text-align:center;padding:60px 20px;color:var(--muted);">
+              <div style="font-size:2.5rem;margin-bottom:12px;">🔭</div>
+              <div>Upload an image to begin analysis</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-analyze -->
+
+  <!-- ═══════════════ COMPARE TAB ═══════════════ -->
+  <div id="tab-compare" style="display:none;">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-icon">⚖️</span><span class="panel-title">Image Comparison</span></div>
+      <div class="panel-body">
+        <div class="compare-grid">
+          <div class="compare-zone" id="cz1">
+            <input type="file" accept="image/*" onchange="loadCompare(this,1)"/>
+            <div id="cz1-placeholder"><div style="font-size:1.8rem;">🖼️</div><div style="font-size:.85rem;color:var(--muted);margin-top:6px;">Image 1</div></div>
+            <img id="cz1-img" src="" alt=""/>
+          </div>
+          <div class="compare-zone" id="cz2">
+            <input type="file" accept="image/*" onchange="loadCompare(this,2)"/>
+            <div id="cz2-placeholder"><div style="font-size:1.8rem;">🖼️</div><div style="font-size:.85rem;color:var(--muted);margin-top:6px;">Image 2</div></div>
+            <img id="cz2-img" src="" alt=""/>
+          </div>
+        </div>
+        <div style="margin-top:14px;text-align:center;">
+          <button class="btn btn-primary" id="cmp-btn" onclick="compareImages()" disabled>Compare Images ⚖️</button>
+        </div>
+        <div class="loader" id="cmp-loader"><div class="spinner"></div><div class="loader-text">Comparing...</div></div>
+        <div class="compare-result" id="cmp-result" style="display:none;margin-top:20px;">
+          <div class="caption-box" id="cmp-summary"></div>
+          <div style="margin-top:12px;">
+            <div class="diff-row"><span class="diff-label">Brightness</span><span id="cmp-brightness"></span></div>
+            <div class="diff-row"><span class="diff-label">Crowd — Image 1</span><span id="cmp-crowd1"></span></div>
+            <div class="diff-row"><span class="diff-label">Crowd — Image 2</span><span id="cmp-crowd2"></span></div>
+            <div class="diff-row"><span class="diff-label">Mood — Image 1</span><span id="cmp-mood1"></span></div>
+            <div class="diff-row"><span class="diff-label">Mood — Image 2</span><span id="cmp-mood2"></span></div>
+            <div class="diff-row"><span class="diff-label">Scene — Image 1</span><span id="cmp-scene1"></span></div>
+            <div class="diff-row"><span class="diff-label">Scene — Image 2</span><span id="cmp-scene2"></span></div>
+          </div>
+          <div style="margin-top:14px;">
+            <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Key Differences</div>
+            <div id="cmp-diffs" class="tag-cloud"></div>
+          </div>
+          <div class="progress-wrap" style="margin-top:14px;">
+            <div class="progress-label"><span>Similarity Score</span><span id="cmp-sim-val">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="cmp-sim-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-compare -->
+
+  <!-- ═══════════════ DASHBOARD TAB ═══════════════ -->
+  <div id="tab-dashboard" style="display:none;">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-icon">📊</span><span class="panel-title">Live Analysis Dashboard</span><span style="margin-left:auto;font-size:.75rem;color:var(--muted);">Last 6 analyzed images</span></div>
+      <div class="panel-body">
+        <div class="dashboard-grid" id="dash-grid">
+          <div class="empty-dash" id="dash-empty">No images analyzed yet. Start by uploading one!</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-dashboard -->
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let currentFile = null;
+let currentResult = null;
+let camStream = null;
+let compareFile1 = null, compareFile2 = null;
+const API = '';  // Flask runs on same origin
+
+// ── UTILITY ───────────────────────────────────────────
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function show(id){document.getElementById(id).style.display='';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+// ── MODE ──────────────────────────────────────────────
+function setMode(m,btn){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  toast(m==='live'?'🟢 Live Mode — using real Claude API':'🔵 Demo Mode active');
+}
+
+// ── MAIN TABS ─────────────────────────────────────────
+function switchMainTab(tab,el){
+  ['analyze','compare','dashboard'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'':'none';
+  });
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(tab==='dashboard') loadDashboard();
+}
+
+// ── INNER TABS ────────────────────────────────────────
+function switchInnerTab(tab,el){
+  ['overview','objects','story','followup'].forEach(t=>{
+    const s=document.getElementById('inner-'+t);
+    if(s){s.classList.remove('visible');s.style.display='none';}
+  });
+  const target=document.getElementById('inner-'+tab);
+  if(target){target.classList.add('visible');target.style.display='block';}
+  el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── IMAGE UPLOAD ──────────────────────────────────────
+function handleImage(input){
+  if(!input.files.length)return;
+  currentFile=input.files[0];
+  const url=URL.createObjectURL(currentFile);
+  const img=document.getElementById('preview-img');
+  img.src=url; img.style.display='block';
+  document.getElementById('analyze-btn').disabled=false;
+}
+
+// Drag & Drop
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault(); dz.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')){
+    currentFile=f;
+    document.getElementById('preview-img').src=URL.createObjectURL(f);
+    document.getElementById('preview-img').style.display='block';
+    document.getElementById('analyze-btn').disabled=false;
+  }
+});
+
+// ── WEBCAM ────────────────────────────────────────────
+async function startCam(){
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:true});
+    const v=document.getElementById('cam-video');
+    v.srcObject=camStream; v.style.display='block';
+    show('snap-btn'); show('stop-cam-btn');
+    toast('📷 Camera ready — click Snap!');
+  }catch(e){toast('Camera error: '+e.message);}
+}
+function snapPhoto(){
+  const v=document.getElementById('cam-video');
+  const c=document.getElementById('cam-canvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  c.toBlob(blob=>{
+    currentFile=new File([blob],'snapshot.jpg',{type:'image/jpeg'});
+    document.getElementById('preview-img').src=URL.createObjectURL(currentFile);
+    document.getElementById('preview-img').style.display='block';
+    document.getElementById('analyze-btn').disabled=false;
+    stopCam();
+    toast('📸 Snapshot taken!');
+  },'image/jpeg',0.92);
+}
+function stopCam(){
+  if(camStream)camStream.getTracks().forEach(t=>t.stop());
+  document.getElementById('cam-video').style.display='none';
+  hide('snap-btn'); hide('stop-cam-btn');
+}
+
+// ── ANALYZE ───────────────────────────────────────────
+async function analyzeImage(){
+  if(!currentFile){toast('Please upload an image first.');return;}
+  const tone=document.getElementById('tone-select').value;
+  hide('results-placeholder');
+  hide('results-area');
+  document.getElementById('main-loader').classList.add('show');
+
+  const fd=new FormData();
+  fd.append('image',currentFile);
+  fd.append('tone',tone);
+
+  try{
+    const res=await fetch('/analyze',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.error){toast('Error: '+data.error);return;}
+    currentResult=data;
+    renderResults(data);
+  }catch(e){
+    toast('Request failed: '+e.message);
+  }finally{
+    document.getElementById('main-loader').classList.remove('show');
+  }
+}
+
+function renderResults(d){
+  document.getElementById('r-caption').textContent=d.caption||'—';
+  document.getElementById('r-summary').textContent=d.summary||'—';
+  document.getElementById('r-emotion').textContent=d.emotion||'—';
+  document.getElementById('r-scene').textContent=d.scene_type||'—';
+  document.getElementById('r-quality').textContent=d.image_quality||'—';
+  document.getElementById('r-mood').textContent=(d.mood_score||0)+'/100';
+
+  const conf=d.confidence||0;
+  document.getElementById('r-conf-val').textContent=conf+'%';
+  setTimeout(()=>document.getElementById('r-conf-bar').style.width=conf+'%',100);
+
+  // Objects
+  const objC=document.getElementById('r-objects');
+  objC.innerHTML='';
+  (d.objects||[]).forEach(o=>{const t=document.createElement('span');t.className='tag tag-obj';t.textContent=o;objC.appendChild(t);});
+
+  // Keywords
+  const kwC=document.getElementById('r-keywords');
+  kwC.innerHTML='';
+  (d.keywords||[]).forEach(k=>{const t=document.createElement('span');t.className='tag tag-kw';t.textContent=k;kwC.appendChild(t);});
+
+  document.getElementById('r-story').textContent=d.story||'—';
+  document.getElementById('results-area').style.display='block';
+  document.getElementById('fq-answer').style.display='none';
+  toast('✅ Analysis complete!');
+}
+
+// ── FOLLOW-UP ─────────────────────────────────────────
+async function askFollowup(){
+  const q=document.getElementById('fq-input').value.trim();
+  if(!q){toast('Enter a question.');return;}
+  if(!currentFile){toast('Upload image first.');return;}
+
+  document.getElementById('fq-loader').classList.add('show');
+  document.getElementById('fq-answer').style.display='none';
+
+  const fd=new FormData();
+  fd.append('image',currentFile);
+  fd.append('question',q);
+
+  try{
+    const res=await fetch('/followup',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.error){toast(data.error);return;}
+    const ans=document.getElementById('fq-answer');
+    ans.textContent=data.answer;
+    ans.style.display='block';
+  }catch(e){toast('Error: '+e.message);}
+  finally{document.getElementById('fq-loader').classList.remove('show');}
+}
+
+// ── COMPARE ───────────────────────────────────────────
+function loadCompare(input,n){
+  if(!input.files.length)return;
+  const f=input.files[0];
+  const img=document.getElementById('cz'+n+'-img');
+  const ph=document.getElementById('cz'+n+'-placeholder');
+  img.src=URL.createObjectURL(f); img.style.display='block'; ph.style.display='none';
+  if(n===1)compareFile1=f; else compareFile2=f;
+  if(compareFile1&&compareFile2)document.getElementById('cmp-btn').disabled=false;
+}
+
+async function compareImages(){
+  if(!compareFile1||!compareFile2){toast('Upload both images.');return;}
+  document.getElementById('cmp-loader').classList.add('show');
+  document.getElementById('cmp-result').style.display='none';
+
+  const fd=new FormData();
+  fd.append('image1',compareFile1);
+  fd.append('image2',compareFile2);
+
+  try{
+    const res=await fetch('/compare',{method:'POST',body:fd});
+    const d=await res.json();
+    if(d.error){toast(d.error);return;}
+
+    document.getElementById('cmp-summary').textContent=d.summary||'';
+    document.getElementById('cmp-brightness').textContent=d.brightness_diff||'—';
+    document.getElementById('cmp-crowd1').textContent=d.crowd_level?.image1||'—';
+    document.getElementById('cmp-crowd2').textContent=d.crowd_level?.image2||'—';
+    document.getElementById('cmp-mood1').textContent=d.mood?.image1||'—';
+    document.getElementById('cmp-mood2').textContent=d.mood?.image2||'—';
+    document.getElementById('cmp-scene1').textContent=d.scene_type?.image1||'—';
+    document.getElementById('cmp-scene2').textContent=d.scene_type?.image2||'—';
+
+    const diffs=document.getElementById('cmp-diffs');
+    diffs.innerHTML='';
+    (d.key_differences||[]).forEach(diff=>{
+      const t=document.createElement('span');t.className='tag tag-obj';t.textContent=diff;diffs.appendChild(t);
+    });
+
+    const sim=d.similarity_score||0;
+    document.getElementById('cmp-sim-val').textContent=sim+'%';
+    setTimeout(()=>document.getElementById('cmp-sim-bar').style.width=sim+'%',100);
+    document.getElementById('cmp-result').style.display='block';
+    toast('✅ Comparison done!');
+  }catch(e){toast('Error: '+e.message);}
+  finally{document.getElementById('cmp-loader').classList.remove('show');}
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    const res=await fetch('/history');
+    const items=await res.json();
+    const grid=document.getElementById('dash-grid');
+    if(!items.length){grid.innerHTML='<div class="empty-dash">No images analyzed yet. Start by uploading one!</div>';return;}
+    grid.innerHTML='';
+    items.forEach(item=>{
+      const mood=item.mood_score||50;
+      const moodColor=mood>=70?'#10b981':mood>=40?'#f59e0b':'#ef4444';
+      const card=document.createElement('div');
+      card.className='dash-card';
+      card.innerHTML=`
+        <img class="dash-thumb" src="${item.thumbnail}" alt=""/>
+        <div class="dash-info">
+          <div class="dash-caption">${item.caption||'No caption'}</div>
+          <div class="dash-meta">
+            <span class="dash-scene">${item.scene_type||'unknown'}</span>
+            <span class="dash-mood" style="color:${moodColor};">😊 ${mood}</span>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }catch(e){console.error(e);}
+}
+
+// ── AUDIO TTS ─────────────────────────────────────────
+let utterance=null;
+function speakStory(){
+  const story=document.getElementById('r-story').textContent;
+  if(!story||story==='—'){toast('No story to read.');return;}
+  window.speechSynthesis.cancel();
+  utterance=new SpeechSynthesisUtterance(story);
+  utterance.rate=0.95; utterance.pitch=1;
+  document.getElementById('tts-status').textContent='🔊 Reading...';
+  utterance.onend=()=>document.getElementById('tts-status').textContent='Click speaker to hear the story';
+  window.speechSynthesis.speak(utterance);
+}
+function stopSpeech(){
+  window.speechSynthesis.cancel();
+  document.getElementById('tts-status').textContent='Stopped.';
+}
+
+// ── DOWNLOAD REPORT ───────────────────────────────────
+function downloadReport(){
+  if(!currentResult){toast('No analysis yet.');return;}
+  const d=currentResult;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Vision AI Report</title>
+<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#1e293b;line-height:1.6;}
+h1{color:#7c3aed;}h2{color:#0ea5e9;border-bottom:2px solid #e2e8f0;padding-bottom:6px;}
+.tag{display:inline-block;background:#e0f2fe;color:#0369a1;padding:3px 10px;border-radius:99px;margin:3px;font-size:13px;}
+.kwtag{background:#fef3c7;color:#92400e;}
+.story{background:#f5f3ff;border-left:4px solid #7c3aed;padding:16px;border-radius:4px;font-style:italic;}
+table{width:100%;border-collapse:collapse;}td{padding:8px 12px;border-bottom:1px solid #e2e8f0;}td:first-child{font-weight:bold;color:#64748b;width:180px;}
+</style></head><body>
+<h1>🧠 Vision AI — Analysis Report</h1>
+<p><em>Generated: ${new Date().toLocaleString()}</em></p>
+<h2>Caption</h2><p>${d.caption}</p>
+<h2>Summary</h2><p>${d.summary}</p>
+<h2>Metadata</h2>
+<table>
+<tr><td>Emotion</td><td>${d.emotion}</td></tr>
+<tr><td>Scene Type</td><td>${d.scene_type}</td></tr>
+<tr><td>Image Quality</td><td>${d.image_quality}</td></tr>
+<tr><td>Mood Score</td><td>${d.mood_score}/100</td></tr>
+<tr><td>Confidence</td><td>${d.confidence}%</td></tr>
+</table>
+<h2>Detected Objects</h2>${(d.objects||[]).map(o=>`<span class="tag">${o}</span>`).join('')}
+<h2>Keywords</h2>${(d.keywords||[]).map(k=>`<span class="tag kwtag">${k}</span>`).join('')}
+<h2>Creative Story</h2><div class="story">${d.story}</div>
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='vision-ai-report.html';
+  a.click();
+  toast('📄 Report downloaded!');
+}
+
+function copyJSON(){
+  if(!currentResult){toast('No data.');return;}
+  navigator.clipboard.writeText(JSON.stringify(currentResult,null,2));
+  toast('📋 JSON copied!');
+}
+</script>
+</body>
+</html>
