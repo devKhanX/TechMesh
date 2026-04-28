@@ -11,7 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-client = Groq(api_key=st.secrets["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"])
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 TEXT_MODEL   = "llama3-8b-8192"
 
